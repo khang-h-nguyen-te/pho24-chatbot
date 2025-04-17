@@ -11,7 +11,7 @@ from app.templates.prompt_templates import PHO24_SYSTEM_TEMPLATE
 from app.tools.search.pho24_semantic_search_tool import Pho24SemanticSearchTool
 from app.config.env_config import config
 
-
+ 
 class AgentPHO24:
     """
     PHO24 agent for answering queries about the brand.
