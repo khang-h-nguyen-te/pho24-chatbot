@@ -110,3 +110,4 @@ docker/
 docker-compose.*.yml
 docker-compose.override.yml
 docker-entrypoint.sh
+.vercel

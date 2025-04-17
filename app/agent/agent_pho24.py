@@ -1,11 +1,15 @@
 from typing import Dict, List, Optional
 import logging
+import os
 
 from llama_index.llms.openai import OpenAI as OpenAI_LLAMA
 from llama_index.agent.openai import OpenAIAgent
 from llama_index.core import PromptTemplate
 from llama_index.core.memory.chat_memory_buffer import ChatMemoryBuffer
 from llama_index.core.tools import FunctionTool
+
+# Set environment variable for tiktoken to use /tmp which is writable in Vercel
+os.environ["TIKTOKEN_CACHE_DIR"] = "/tmp/tiktoken_cache"
 
 from app.templates.prompt_templates import PHO24_SYSTEM_TEMPLATE
 from app.tools.search.pho24_semantic_search_tool import Pho24SemanticSearchTool
@@ -37,8 +41,14 @@ class AgentPHO24:
             fn=pho24_semantic_search_tool.__call__
         )
         
-        # Set up memory with configurable token limit
-        memory = ChatMemoryBuffer.from_defaults(token_limit=config.memory_token_limit)
+        try:
+            # Set up memory with configurable token limit
+            # Use a try-except block to handle potential tiktoken issues
+            memory = ChatMemoryBuffer.from_defaults(token_limit=config.memory_token_limit)
+        except Exception as e:
+            self.logger.warning(f"Error setting up chat memory with token limit: {e}")
+            # Fall back to a simpler memory implementation without tokenization
+            memory = ChatMemoryBuffer(token_limit=100000)
         
         # Initialize agent with tools
         self.agent = OpenAIAgent.from_tools(

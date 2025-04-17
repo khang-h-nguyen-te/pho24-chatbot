@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Dict, Any
 
 
 class QueryRequest(BaseModel):
@@ -10,4 +10,5 @@ class QueryRequest(BaseModel):
 class HealthResponse(BaseModel):
     """Model for health check response."""
     status: str = Field(..., description="The status of the API")
-    version: str = Field(..., description="The version of the API") 
+    version: str = Field(..., description="The version of the API")
+    details: Optional[Dict[str, Any]] = None 
