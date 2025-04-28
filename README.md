@@ -1,5 +1,6 @@
 # PHO24 Chatbot
 
+
 A FastAPI application that serves as a chatbot for answering questions about PHO24, a Vietnamese Pho brand. The chatbot is designed to respond in both English and Vietnamese, positioning the brand as high-tech and progressive to attract potential franchise buyers.
 
 ## Project Structure
