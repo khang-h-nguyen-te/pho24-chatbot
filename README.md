@@ -1,119 +1,162 @@
-# PHO24 Chatbot
+# AI Officer PDF Embedding and Vector Storage
 
-A FastAPI application that serves as a chatbot for answering questions about PHO24, a Vietnamese Pho brand. The chatbot is designed to respond in both English and Vietnamese, positioning the brand as high-tech and progressive to attract potential franchise buyers.
+A toolkit for processing PDF documents, generating embeddings using OpenAI, and storing them in a Supabase vector database for semantic search.
+
+## Features
+
+- Parse PDF documents using LlamaParse
+- Generate embeddings with OpenAI's text-embedding-3-small model
+- Store documents and embeddings in Supabase for vector search
+- Perform semantic searches on your document collection
+
+## Setup
+
+### Prerequisites
+
+- Python 3.8+
+- Supabase account with vector extension enabled
+- LlamaParse API key
+- OpenAI API key
+
+### Installation
+
+1. Clone the repository
+   ```bash
+   git clone https://github.com/yourusername/ai-officer.git
+   cd ai-officer
+   ```
+
+2. Install dependencies
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Set up environment variables
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API keys and Supabase credentials
+   ```
+
+### Database Setup
+
+Create a table in Supabase with the following structure:
+
+```sql
+CREATE TABLE aiofficer (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  content TEXT,
+  metadata JSONB,
+  embedding VECTOR(1536)  -- Adjust dimension based on your embedding model
+);
+
+-- Create a function for similarity search
+CREATE OR REPLACE FUNCTION match_documents(
+  query_embedding VECTOR(1536),
+  match_threshold FLOAT,
+  match_count INT
+)
+RETURNS TABLE (
+  id UUID,
+  content TEXT,
+  metadata JSONB,
+  similarity FLOAT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    id,
+    content,
+    metadata,
+    1 - (embedding <=> query_embedding) AS similarity
+  FROM aiofficer
+  WHERE 1 - (embedding <=> query_embedding) > match_threshold
+  ORDER BY similarity DESC
+  LIMIT match_count;
+END;
+$$;
+```
+
+## Usage
+
+### Processing a PDF
+
+Run the PDF processing script:
+
+```bash
+# From the project root directory
+python -m app.utils.process_faq
+```
+
+### Code Example
+
+```python
+from app.utils.process_faq import FAQProcessor
+
+# Initialize the processor
+processor = FAQProcessor()
+
+# Process a PDF file and store in Supabase
+doc_ids = processor.process_and_store("path/to/your/file.pdf", table_name="aiofficer")
+```
+
+### Querying the Vector Store
+
+```python
+from openai import OpenAI
+from app.vectorstore.supabase_vectorstore import SupabaseVectorStore
+
+# Initialize clients
+openai_client = OpenAI(api_key="your_openai_api_key")
+supabase_client = SupabaseVectorStore()
+
+# Generate query embedding
+def generate_embedding(text):
+    response = openai_client.embeddings.create(
+        input=text,
+        model="text-embedding-3-small"
+    )
+    return response.data[0].embedding
+
+# Search for similar documents
+query = "What is an AI Officer?"
+query_embedding = generate_embedding(query)
+results = supabase_client.similarity_search(
+    query_embedding, 
+    limit=3,
+    table_name="aiofficer"
+)
+
+# Process results
+for i, result in enumerate(results):
+    print(f"Result {i+1}:")
+    print(f"Content: {result.get('content', '')[:100]}...")
+    print(f"Similarity: {result.get('similarity', 0)}")
+```
 
 ## Project Structure
 
 ```
-pho24-chatbot/
-├── main.py  # Main application entry point
+ai-officer/
 ├── app/
-│   ├── agent/
-│   │   └── agent_pho24.py  # PHO24 agent implementation
 │   ├── config/
-│   │   ├── env_config.py  # Configuration
-│   │   └── supabase_config.py  # Supabase client
-│   ├── models/
-│   │   └── request_models.py  # API request/response models
-│   ├── services/
-│   │   └── embeddings.py  # Embedding service
-│   ├── templates/
-│   │   └── prompt_templates.py  # System prompts
-│   ├── tools/
-│   │   ├── base_tool.py  # Abstract base class for tools
-│   │   └── search/
-│   │       ├── english_faq_tool.py  # English FAQ search tool
-│   │       └── vietnamese_faq_tool.py  # Vietnamese FAQ search tool
+│   │   ├── env_config.py        # Environment configuration
+│   │   └── supabase_config.py   # Supabase client configuration
 │   ├── utils/
-│   │   ├── response_utils.py  # API response utilities
-│   │   └── pdf_loader.py  # PDF loading utility
+│   │   ├── pdf_to_vectorstore.py # PDF processing utility
+│   │   └── process_faq.py       # Main processing script
 │   └── vectorstore/
-│       └── supabase_vectorstore.py  # Supabase vector store
-├── data/
-│   ├── english_faq.json  # English FAQ data
-│   ├── vietnamese_faq.json  # Vietnamese FAQ data
-│   └── english_faqs.pdf  # PDF file with English FAQs
-├── scripts/
-│   ├── process_pdf.py  # Script to process PDF files (custom implementation)
-│   ├── llamaindex_supabase.py  # Script to process PDF files (LlamaIndex implementation)
-│   └── README.md  # Instructions for using the PDF processing scripts
-├── process_pdf_faq.sh  # Shell script to run PDF processing
-└── requirements.txt
+│       └── supabase_vectorstore.py # Supabase vector store client
+├── .env.example                 # Example environment variables
+├── requirements.txt             # Python dependencies
+└── README.md                    # This file
 ```
 
-## Key Components
+## License
 
-- **Agent**: The main agent that orchestrates the tools and handles user queries.
-- **Tools**: Two main tools for searching FAQs in English and Vietnamese.
-- **FAQ Data**: Structured data with questions and answers about PHO24 in both languages.
-- **PDF Processing**: Tools to process PDF files, create embeddings, and store them in Supabase.
+MIT License
 
-## Setup and Usage
+## Contributing
 
-1. Copy `.env.example` to `.env` and fill in the required variables
-2. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-3. Run the application:
-   ```
-   python main.py
-   ```
-
-The API will be available at `http://localhost:8000`.
-
-## API Endpoints
-
-- **POST /ask**: Send a question to the agent
-- **GET /health**: Simple health check endpoint
-
-## Example Usage
-
-```bash
-# Send a question to the chatbot
-curl -X POST "http://localhost:8000/ask" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "What is PHO24s vision?"}'
-
-# Response:
-# {"response": "PHO24's vision is to be the most recognized and trusted Vietnamese Pho brand worldwide."}
-```
-
-## Key Features
-
-1. **Bilingual Support**: Responds to queries in both English and Vietnamese.
-2. **Brand-Focused Responses**: Emphasizes PHO24's authenticity, innovation, quality, and community.
-3. **Language Detection**: Automatically detects the language of the query and responds accordingly.
-4. **Conversation Context**: Maintains conversation history for context-aware responses.
-5. **PDF Processing**: Ability to process PDF files, create embeddings, and store them in Supabase for enhanced FAQ capabilities.
-
-## Extending the FAQ
-
-### JSON Files
-
-To add new FAQs, update the JSON files in the `data` directory:
-
-- `english_faq.json` for English FAQs
-- `vietnamese_faq.json` for Vietnamese FAQs
-
-### PDF Processing
-
-To process PDF files containing FAQ data:
-
-1. Place your PDF file in the `data` directory (e.g., `english_faqs.pdf`)
-2. Run the processing script:
-   ```
-   # Using the shell script (Unix/Linux/macOS)
-   chmod +x process_pdf_faq.sh  # Make the script executable (first time only)
-   ./process_pdf_faq.sh
-   
-   # Or using Python directly
-   python scripts/llamaindex_supabase.py data/english_faqs.pdf
-   ```
-3. The script will:
-   - Load the PDF file
-   - Split it into manageable chunks
-   - Create embeddings using OpenAI's API
-   - Store the embeddings in your Supabase database
-
-See `scripts/README.md` for more detailed instructions on PDF processing. 
+Contributions are welcome! Please feel free to submit a Pull Request. 

@@ -13,15 +13,15 @@ from llama_index.core.tools import FunctionTool
 # Set environment variable for tiktoken to use /tmp which is writable in Vercel
 os.environ["TIKTOKEN_CACHE_DIR"] = "/tmp/tiktoken_cache"
 
-from app.templates.prompt_templates import PHO24_SYSTEM_TEMPLATE
-from app.tools.search.pho24_semantic_search_tool import Pho24SemanticSearchTool
+from app.templates.prompt_templates import AIOFFICER_SYSTEM_TEMPLATE
+from app.tools.search.aiofficer_semantic_search_tool import AIOfficerSemanticSearchTool
 from app.config.env_config import config
 
  
-class AgentPHO24:
+class AgentAIOfficer:
     """
-    PHO24 agent for answering queries about the brand.
-    This agent uses semantic search to provide accurate information about PHO24.
+    AI-Officer agent for answering queries.
+    This agent uses semantic search to provide accurate information.
     Uses lazy initialization and state tracking to avoid first-call failures.
     """
     
@@ -36,9 +36,9 @@ class AgentPHO24:
     def __new__(cls):
         # Implement singleton pattern to ensure only one agent instance
         if cls._instance is None:
-            cls._instance = super(AgentPHO24, cls).__new__(cls)
+            cls._instance = super(AgentAIOfficer, cls).__new__(cls)
             cls._instance.logger = logging.getLogger(__name__)
-            cls._instance.qa_template = PromptTemplate(PHO24_SYSTEM_TEMPLATE)
+            cls._instance.qa_template = PromptTemplate(AIOFFICER_SYSTEM_TEMPLATE)
             cls._instance.gpt4_llm = None
             cls._instance.agent = None
             # Start initialization in the background
@@ -60,13 +60,13 @@ class AgentPHO24:
             self.gpt4_llm = OpenAI_LLAMA(model=config.llm_model)
             
             # Create semantic search tool
-            pho24_semantic_search_tool = Pho24SemanticSearchTool()
+            aiofficer_semantic_search_tool = AIOfficerSemanticSearchTool()
             
             # Create llama_index FunctionTool object
-            pho24_semantic_search_function_tool = FunctionTool.from_defaults(
-                name=pho24_semantic_search_tool.name,
-                description=pho24_semantic_search_tool.description,
-                fn=pho24_semantic_search_tool.__call__
+            aiofficer_semantic_search_function_tool = FunctionTool.from_defaults(
+                name=aiofficer_semantic_search_tool.name,
+                description=aiofficer_semantic_search_tool.description,
+                fn=aiofficer_semantic_search_tool.__call__
             )
             
             try:
@@ -79,11 +79,11 @@ class AgentPHO24:
             
             # Initialize agent with tools
             self.agent = OpenAIAgent.from_tools(
-                tools=[pho24_semantic_search_function_tool],
+                tools=[aiofficer_semantic_search_function_tool],
                 llm=self.gpt4_llm,
                 memory=memory,
                 verbose=True,
-                system_prompt=PHO24_SYSTEM_TEMPLATE
+                system_prompt=AIOFFICER_SYSTEM_TEMPLATE
             )
             
             with self._initialization_lock:
@@ -134,8 +134,6 @@ class AgentPHO24:
                     # Still within acceptable wait time
                     self.logger.info(f"Agent still initializing, waited {elapsed:.1f}s")
                     message = "The chatbot is still initializing, please try again in a few seconds."
-                    if any(char in query for char in "àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ"):
-                        return f"Tôi xin lỗi, hệ thống đang khởi động. Vui lòng thử lại sau vài giây. (Đã chờ {elapsed:.1f}s)"
                     return f"{message} (Elapsed: {elapsed:.1f}s)"
                 else:
                     # Initialization is taking too long, try to restart it
@@ -150,10 +148,7 @@ class AgentPHO24:
                 threading.Thread(target=self._initialize_agent, daemon=True).start()
             
             # Return a message indicating the agent is initializing
-            if any(char in query for char in "àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ"):
-                return "Tôi xin lỗi, hệ thống đang khởi động. Vui lòng thử lại sau vài giây."
-            else:
-                return "I apologize, the chatbot is still initializing. Please try again in a few seconds."
+            return "I apologize, the AI-Officer is still initializing. Please try again in a few seconds."
         
         # Agent is initialized, process the query
         try:
@@ -162,7 +157,4 @@ class AgentPHO24:
         except Exception as e:
             self.logger.error(f"Error querying agent: {e}")
             # Return a fallback response in case of an error
-            if any(char in query for char in "àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ"):
-                return "Tôi xin lỗi, hiện tại tôi gặp vấn đề kỹ thuật. Vui lòng thử lại sau hoặc liên hệ với chúng tôi qua website của PHO24."
-            else:
-                return "I apologize, I'm currently experiencing technical difficulties. Please try again later or contact us through the PHO24 website." 
+            return "I apologize, I'm currently experiencing technical difficulties. Please try again later or contact support." 

@@ -1,3 +1,5 @@
+"""Environment configuration module."""
+
 import os
 import logging
 from dotenv import load_dotenv
@@ -7,6 +9,26 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables from .env file - only once at module import time
 load_dotenv()
+
+# Config dictionary
+config = {
+    # OpenAI Configuration
+    "openai_api_key": os.getenv("OPENAI_API_KEY"),
+    "openai_embedding_model": os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
+    
+    # LlamaParse Configuration
+    "llama_parse_api_key": os.getenv("LLAMA_PARSE_API_KEY"),
+    
+    # Supabase Configuration
+    "supabase_url": os.getenv("SUPABASE_URL"),
+    "supabase_key": os.getenv("SUPABASE_KEY"),
+    
+    # Vector Store Configuration
+    "vector_store_table": os.getenv("VECTOR_STORE_TABLE", "aiofficer"),
+    
+    # Logging Configuration
+    "log_level": os.getenv("LOG_LEVEL", "INFO"),
+}
 
 class Config:
     """

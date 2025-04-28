@@ -7,27 +7,27 @@ from app.config.supabase_config import get_supabase_client
 
 logger = logging.getLogger(__name__)
 
-class Pho24SemanticSearchTool(BaseTool):
-    """Tool for semantically searching Pho24 information using Supabase vector search."""
+class AIOfficerSemanticSearchTool(BaseTool):
+    """Tool for semantically searching information using Supabase vector search."""
     
     def __init__(self):
         super().__init__(
-            name="Pho24SemanticSearch",
-            description="Search for information about Pho24 using semantic search. This tool is useful for answering questions about the restaurant, menu items, locations, and other information about Pho24."
+            name="AIOfficerSemanticSearch",
+            description="Search for information using semantic search. This tool helps retrieve relevant information to answer user queries with accurate and helpful responses."
         )
         self.embedding_service = EmbeddingService()
         self.supabase = get_supabase_client()
     
-    def __call__(self, query: str, match_count: int = 5) -> str:
+    def __call__(self, query: str, match_count: int = 3) -> str:
         """
-        Perform semantic search for Pho24 information.
+        Perform semantic search for information.
         
         Args:
-            query: The user's question about Pho24
+            query: The user's question
             match_count: Number of results to return (default: 5)
             
         Returns:
-            Relevant information from the Pho24 knowledge base
+            Relevant information from the knowledge base
         """
         try:
             # Generate embedding for the query
@@ -39,9 +39,9 @@ class Pho24SemanticSearchTool(BaseTool):
                 return "I'm sorry, I'm having trouble processing your question. Please try asking in a different way."
             
             # Call the Supabase RPC function for semantic search
-            logger.info(f"Calling semantic_search_pho24 with match_count={match_count}")
+            logger.info(f"Calling semantic_search_aiofficer with match_count={match_count}")
             response = self.supabase.rpc(
-                'semantic_search_pho24',
+                'semantic_search_aiofficer',  # Note: You'll need to create this function in Supabase
                 {
                     'query_embedding': query_embedding,
                     'match_count': match_count
@@ -51,7 +51,7 @@ class Pho24SemanticSearchTool(BaseTool):
             # Process and format the results
             if not hasattr(response, 'data') or not response.data:
                 logger.warning("No results found from semantic search")
-                return "I don't have specific information about that. Is there something else about PHO24 I can help you with?"
+                return "I don't have specific information about that. Is there something else I can help you with?"
             
             results = response.data
             logger.info(f"Found {len(results)} matching documents")
@@ -69,4 +69,4 @@ class Pho24SemanticSearchTool(BaseTool):
             logger.error(f"Error in semantic search: {e}")
             import traceback
             logger.error(traceback.format_exc())
-            return "I apologize, but I'm having trouble accessing information about PHO24 at the moment. Please try again later." 
+            return "I apologize, but I'm having trouble accessing the information at the moment. Please try again later." 

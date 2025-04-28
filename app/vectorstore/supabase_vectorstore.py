@@ -49,8 +49,8 @@ class SupabaseVectorStore:
             for doc in documents:
                 # Prepare the data for insertion
                 data = {
-                    "content": doc.get("text", ""),
-                    "metadata": doc.get("metadata", {}),
+                    "text": doc.get("text", ""),
+                    # "metadata": doc.get("metadata", {}),
                     "embedding": doc.get("embedding", [])
                 }
                 

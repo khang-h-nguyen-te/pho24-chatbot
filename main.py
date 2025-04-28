@@ -11,7 +11,7 @@ from app.utils.serverless_utils import configure_for_serverless
 configure_for_serverless()
 
 # Import from our application structure
-from app.agent.agent_pho24 import AgentPHO24
+from app.agent.agent_aiofficer import AgentAIOfficer
 from app.models.request_models import QueryRequest, HealthResponse
 from app.utils.response_utils import create_response
 from app.config.env_config import config
@@ -27,15 +27,15 @@ logger = logging.getLogger(__name__)
 
 # Create FastAPI app
 app = FastAPI(
-    title="PHO24 Chatbot API",
-    description="API for interacting with the PHO24 Chatbot",
+    title="AI-Officer Chatbot API",
+    description="API for interacting with the AI-Officer Chatbot",
     version="1.0.0"
 )
 executor = ThreadPoolExecutor(max_workers=4)
 
 # Initialize agent - this will start background initialization
-pho24_agent = AgentPHO24()
-logger.info("PHO24 agent instance created - initialization started in background")
+ai_officer_agent = AgentAIOfficer()
+logger.info("AI-Officer agent instance created - initialization started in background")
 
 # A helper function to process the query synchronously
 def process_query(query: str) -> str:
@@ -49,7 +49,7 @@ def process_query(query: str) -> str:
         The agent's response
     """
     # The agent_query method now handles the case when the agent is not initialized
-    response = pho24_agent.agent_query(query)
+    response = ai_officer_agent.agent_query(query)
     return response
     
 # Define a POST endpoint to receive user queries
@@ -81,7 +81,7 @@ async def ask_query(payload: QueryRequest, request: Request):
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Enhanced health check endpoint with agent initialization status."""
-    init_status = pho24_agent.initialization_status()
+    init_status = ai_officer_agent.initialization_status()
     
     # Add more details about the agent initialization status
     details = {
@@ -98,7 +98,7 @@ async def health_check():
 # ------------------------------------------------------------
 # Main Function
 # ------------------------------------------------------------
-# if __name__ == "__main__":
-#     # Run the FastAPI app using uvicorn
-#     port = int(os.environ.get("PORT", 8000))
-#     uvicorn.run("main:app", host="0.0.0.0", port=port) 
+if __name__ == "__main__":
+    # Run the FastAPI app using uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port) 
